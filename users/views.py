@@ -28,7 +28,7 @@ def login_view(request):
         recaptcha_response = request.POST.get("recaptcha-token")  # Updated
         # Verify reCAPTCHA
         data = {
-            'secret': settings.RECAPTCHA_SECRET_KEY,
+            'secret': setting.RECAPTCHA_SECRET_KEY,
             'response': recaptcha_response,
             'remoteip': request.META.get('REMOTE_ADDR'),
         }
