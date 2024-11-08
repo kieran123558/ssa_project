@@ -6,10 +6,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import UserRegistrationForm
 
-@login_required(login_url='users:login')
-def user(request):
-    return render(request, "users/user.html")
-
 def register(request):
     if request.method == "POST":
         form = UserRegistrationForm(request.POST)
@@ -21,6 +17,30 @@ def register(request):
         form = UserRegistrationForm()
     return render(request, 'users/register.html', {'form': form})
 
+@login_required(login_url='users:login')
+def user(request):
+    return render(request, "users/user.html")
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST["username"]
+        password = request.POST["password"]
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            next_url = request.GET.get('next', reverse("users:user"))
+            return HttpResponseRedirect(next_url)
+        else:
+            messages.error(request, "Invalid Credentials.")
+    return render(request, "users/login.html")
+
+def logout_view(request):
+    logout(request)
+    messages.success(request, "Successfully logged out.")
+    return redirect('users:login')
+import requests
+from django.conf import settings
+
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
@@ -28,7 +48,7 @@ def login_view(request):
         recaptcha_response = request.POST.get("recaptcha-token")  # Updated
         # Verify reCAPTCHA
         data = {
-            'secret': setting.RECAPTCHA_SECRET_KEY,
+            'secret': settings.RECAPTCHA_SECRET_KEY,
             'response': recaptcha_response,
             'remoteip': request.META.get('REMOTE_ADDR'),
         }
@@ -51,8 +71,3 @@ def login_view(request):
         else:
             messages.error(request, "Invalid username or password.")
     return render(request, "users/login.html")
-
-def logout_view(request):
-    logout(request)
-    messages.success(request, "Successfully logged out.")
-    return redirect('users:login')

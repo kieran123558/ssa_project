@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+RECAPTCHA_SECRET_KEY = "6LceB3EqAAAAAB5VlxuCvWAwRfDwCi0nSNgTud2K"
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,7 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '6LceB3EqAAAAAB5VlxuCvWAwRfDwCi0nSNgTud2K'
+SECRET_KEY = 'django-insecure-kww#j9f=+h41qc7ho=%9ox6*+g2ld)f(1b@^1l3wrgb2_ts70k'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
