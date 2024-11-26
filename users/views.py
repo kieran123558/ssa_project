@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import UserRegistrationForm
+from .forms import UserRegistrationForm, UserTopUp
 
 def register(request):
     if request.method == "POST":
@@ -19,7 +19,11 @@ def register(request):
 
 @login_required(login_url='users:login')
 def user(request):
-    return render(request, "users/user.html")
+    profile = request.user.profile
+    return render(request, "users/user.html", {
+        'user': request.user,
+        'balance': profile.balance,
+    })
 
 def login_view(request):
     if request.method == "POST":
@@ -72,3 +76,22 @@ def login_view(request):
             messages.error(request, "Invalid username or password.")
     return render(request, "users/login.html")
 
+def user_view(request):
+    profile = request.user.profile
+    return render(request, 'users/user.html', {'balance': profile.balance})
+
+
+
+def top_up(request):
+    Profile = request.user.profile
+    if request.method == 'POST':
+        form = UserTopUp(request.POST)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            Profile.balance += amount
+            Profile.save()
+            messages.success(request, f"${amount} has been successfully added to your balance")
+            return redirect('users:user')
+    else:
+        form = UserTopUp()
+    return render(request, 'users/topup.html', {'form': form, 'balance': Profile.balance})

@@ -42,7 +42,7 @@
         {% endfor %}
     </ul>
     
-    <h3>Group Chat</h3>
+    <h2>Group Chat</h2>
 
     <!-- Display existing comments -->
     <div class="comments-section">
@@ -73,7 +73,7 @@
     
     
 
-    <h5>Members</h5>
+    <h4>Members</h4>
     <ul>
         {% for member in group.members.all %}
         <li>{{ member.profile.nickname }}</li>
@@ -86,7 +86,7 @@
     {% endif %}
 
     <!-- Only list Join Requests for groups of which the current user is a member. -->
-    <h6>Join Requests</h6>
+    <h4>Join Requests</h4>
     <ul>
         {% for request in group.join_requests.all %}
             <li>{{ request.user.username }} has requested to join.</li>

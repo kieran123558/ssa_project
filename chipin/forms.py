@@ -32,3 +32,4 @@ class CommentForm(forms.ModelForm):
         if "<script>" in content.lower():  # Prevent XSS by checking for script tags
             raise forms.ValidationError("Invalid content.")
         return content
+

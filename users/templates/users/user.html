@@ -5,5 +5,7 @@
 {% block content %} 
     <h2>Welcome {{ request.user.first_name }}</h2>
     <p>This page is for user management functions.</p>
+    <p>Your current balance is: ${{ balance }}</p>
+    <a href="{% url 'users:top_up' %}">Top Up Balance</a>
     <a href="{% url 'chipin:home' %}">Click through to ChipIn Functions</a>
 {% endblock %}
