@@ -6,10 +6,58 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import transaction
+
 from .forms import GroupCreationForm, CommentForm
-from .models import Group, Comment
+from .models import Group, Comment, GroupJoinRequest, Event
+
+from chipin.models import Event
+ 
+# from datetime import datatime
+
 import urllib.parse
-from .models import GroupJoinRequest, Event
+
+def transfer_funds(request, group_id, event_id):
+    insufficient_funds = True
+    group = get_object_or_404(Group, id=group_id)
+    event = get_object_or_404(Group, id=event_id)
+
+    if request.user != event.admin:
+        messages.error(request, "you no admin")
+        return redirect('group_detail', group_id=group_id)
+    
+    if event.status == Event.archived:
+        messages.error(request, "This event is archived and no further actions are allowed")
+        return redirect('group_detail', group_id=group_id)
+    
+    for member in event.member.all():
+        profile = request.member.profile
+        event_member = request.member.all
+        if profile.balance < event_member.share:
+            insufficient_funds = False
+    
+    if insufficient_funds == False:
+        messages.error(request, f"not all members have sufficinet funds")
+    
+    with transaction.atmoic():
+        for member in event.member.all():
+            profile = request.member.profile
+            event_member = request.member.all
+            profile.balance -= event_member 
+            profile.save()
+
+        admin_profile = event.admin.profile
+        total_transfer = event.total_funds
+        admin_profile.balacne += total_transfer
+        admin_profile.save()
+
+        event.status = Event.archived
+        event.save()
+
+
+
+    messages.sucess(request, "Funds transferred")
+    return redirect('group_detail', group_id=group_id)
 
 @login_required
 def group_detail(request, group_id, edit_comment_id=None):
