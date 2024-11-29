@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
+from decimal import Decimal
 
 from .forms import GroupCreationForm, CommentForm
 from .models import Group, Comment, GroupJoinRequest, Event
@@ -18,46 +19,52 @@ from chipin.models import Event
 import urllib.parse
 
 def transfer_funds(request, group_id, event_id):
-    insufficient_funds = True
     group = get_object_or_404(Group, id=group_id)
-    event = get_object_or_404(Group, id=event_id)
+    event = get_object_or_404(Event, id=event_id, group=group)
+    insufficient_funds = True
 
-    if request.user != event.admin:
+    if request.user != group.admin:
         messages.error(request, "you no admin")
         return redirect('group_detail', group_id=group_id)
     
-    if event.status == Event.archived:
-        messages.error(request, "This event is archived and no further actions are allowed")
-        return redirect('group_detail', group_id=group_id)
+    # if event.status == Event.archived:
+    #     messages.error(request, "This event is archived and no further actions are allowed")
+    #     return redirect('group_detail', group_id=group_id)
     
-    for member in event.member.all():
-        profile = request.member.profile
-        event_member = request.member.all
-        if profile.balance < event_member.share:
+    for member in event.members.all():
+        profile = request.user.profile
+        event_share = event.calculate_share()
+        if profile.balance < event_share:
             insufficient_funds = False
     
     if insufficient_funds == False:
         messages.error(request, f"not all members have sufficinet funds")
     
-    with transaction.atmoic():
-        for member in event.member.all():
-            profile = request.member.profile
-            event_member = request.member.all
-            profile.balance -= event_member 
+    with transaction.atomic():
+        for member in event.members.all():
+            profile = request.user.profile
+            profile.balance -= event_share 
             profile.save()
 
-        admin_profile = event.admin.profile
-        total_transfer = event.total_funds
-        admin_profile.balacne += total_transfer
-        admin_profile.save()
+        if request.user == group.admin:
+            profile = request.user.profile
+            total_spend = Event.objects.get(id=event_id).total_spend
+            addition = [profile.balance, Decimal(total_spend)]
+            Sum = sum(addition)
+            profile.balance = Sum
+            profile.save()
+        else:
+            messages.error(request, "you are not the admin")
 
-        event.status = Event.archived
+        # event.status = Event.archived
         event.save()
+        messages.success(request, "Funds transferred")
+        return redirect('chipin:group_detail', group_id=group.id)
 
 
 
-    messages.sucess(request, "Funds transferred")
-    return redirect('group_detail', group_id=group_id)
+    messages.error(request, "there was an error")
+    return redirect('chipin:group_detail', group_id=group.id)
 
 @login_required
 def group_detail(request, group_id, edit_comment_id=None):

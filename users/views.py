@@ -5,6 +5,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import UserRegistrationForm, UserTopUp
+from .models import Transcation
+
 
 def register(request):
     if request.method == "POST":
@@ -20,9 +22,11 @@ def register(request):
 @login_required(login_url='users:login')
 def user(request):
     profile = request.user.profile
+    transactions = Transcation.objects.all().filter(user=request.user).order_by('-created_at')
     return render(request, "users/user.html", {
         'user': request.user,
         'balance': profile.balance,
+        'transactions': transactions,
     })
 
 def login_view(request):
@@ -90,6 +94,7 @@ def top_up(request):
             amount = form.cleaned_data['amount']
             Profile.balance += amount
             Profile.save()
+            Transcation.objects.create(user=request.user, amount=amount)
             messages.success(request, f"${amount} has been successfully added to your balance")
             return redirect('users:user')
     else:
