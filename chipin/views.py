@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
 from decimal import Decimal
+from users.models import Transcation
 
 from .forms import GroupCreationForm, CommentForm
 from .models import Group, Comment, GroupJoinRequest, Event
@@ -21,7 +22,7 @@ import urllib.parse
 def transfer_funds(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
-    insufficient_funds = True
+    insufficient_funds = False
 
     if request.user != group.admin:
         messages.error(request, "you no admin")
@@ -32,19 +33,22 @@ def transfer_funds(request, group_id, event_id):
     #     return redirect('group_detail', group_id=group_id)
     
     for member in event.members.all():
-        profile = request.user.profile
+        profile = member.profile
         event_share = event.calculate_share()
         if profile.balance < event_share:
-            insufficient_funds = False
+            insufficient_funds = True
     
-    if insufficient_funds == False:
+    if insufficient_funds == True:
         messages.error(request, f"not all members have sufficinet funds")
     
     with transaction.atomic():
         for member in event.members.all():
-            profile = request.user.profile
+            profile = member.profile
+            event_share = event.calculate_share()
             profile.balance -= event_share 
             profile.save()
+            Transcation.objects.create(user=member, amount=-event_share)
+            
 
         if request.user == group.admin:
             profile = request.user.profile
@@ -53,6 +57,7 @@ def transfer_funds(request, group_id, event_id):
             Sum = sum(addition)
             profile.balance = Sum
             profile.save()
+            Transcation.objects.create(user=request.user, amount=total_spend)
         else:
             messages.error(request, "you are not the admin")
 
