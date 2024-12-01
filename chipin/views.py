@@ -28,9 +28,14 @@ def transfer_funds(request, group_id, event_id):
         messages.error(request, "you no admin")
         return redirect('group_detail', group_id=group_id)
     
-    # if event.status == Event.archived:
-    #     messages.error(request, "This event is archived and no further actions are allowed")
-    #     return redirect('group_detail', group_id=group_id)
+    archive = event.check_archived()
+    if archive == False:
+        messages.error(request, "This event has already been archived")
+        return redirect('chipin:group_detail', group_id=group.id)
+    if archive == True:
+        messages.success(request, "This event is now being archived")
+        event.archive_event()
+
     
     for member in event.members.all():
         profile = member.profile
@@ -43,13 +48,6 @@ def transfer_funds(request, group_id, event_id):
         return redirect('chipin:group_detail', group_id=group.id)
     
 
-    archive = event.check_archived()
-    if archive == False:
-        messages.error(request, "This event has already been archived")
-        return redirect('chipin:group_detail', group_id=group.id)
-    if archive == True:
-        messages.success(request, "This event is now being archived")
-        event.archive_event()
 
     with transaction.atomic():
         for member in event.members.all():
@@ -153,6 +151,10 @@ def join_event(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
     event_share = event.calculate_share()  
+    archive = event.check_archived()
+    if archive == False:
+        messages.error(request, "This event has already been archived")
+        return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user is eligible to join based on their max spend
     if request.user.profile.max_spend < event_share:
         messages.error(request, f"Your max spend of ${request.user.profile.max_spend} is too low to join this event.")
@@ -201,6 +203,10 @@ def update_event_status(request, group_id, event_id):
 def leave_event(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
+    archive = event.check_archived()
+    if archive == False:
+        messages.error(request, "This event has already been archived")
+        return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user is part of the event
     if request.user not in event.members.all():
         messages.error(request, "You are not a member of this event.")
