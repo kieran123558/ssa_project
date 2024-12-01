@@ -55,3 +55,12 @@ class Event(models.Model):
         self.status = 'Active'
         return True
     
+    def check_archived(self):
+        if self.status == 'Archived':
+            return False
+        elif self.status != 'Archived':
+            return True
+        
+    def archive_event(self):
+        self.status = 'Archived'
+        return True
