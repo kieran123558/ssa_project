@@ -40,7 +40,17 @@ def transfer_funds(request, group_id, event_id):
     
     if insufficient_funds == True:
         messages.error(request, f"not all members have sufficinet funds")
+        return redirect('chipin:group_detail', group_id=group.id)
     
+
+    archive = event.check_archived()
+    if archive == False:
+        messages.error(request, "This event has already been archived")
+        return redirect('chipin:group_detail', group_id=group.id)
+    if archive == True:
+        messages.success(request, "This event is now being archived")
+        event.archive_event()
+
     with transaction.atomic():
         for member in event.members.all():
             profile = member.profile
@@ -61,7 +71,7 @@ def transfer_funds(request, group_id, event_id):
         else:
             messages.error(request, "you are not the admin")
 
-        # event.status = Event.archived
+
         event.save()
         messages.success(request, "Funds transferred")
         return redirect('chipin:group_detail', group_id=group.id)
