@@ -41,8 +41,8 @@ class Event(models.Model):
         if members_count == 0:
             return 0
         else:
-            unround_share = self.total_spend / members_count
-            round_share = round(unround_share, 2)
+            unround_share = self.total_spend / members_count #rounds the number to 2 decimal, when it is being taken away for user there no erros
+            round_share = round(unround_share, 2)            #as user have 2 decimal is minusing a recurring decimal it breaks the code
         return round_share
 
     def check_status(self):
@@ -55,12 +55,22 @@ class Event(models.Model):
         self.status = 'Active'
         return True
     
-    def check_archived(self):
+    def check_archived(self):#check if event is archived
         if self.status == 'Archived':
             return False
         elif self.status != 'Archived':
             return True
         
-    def archive_event(self):
+    def archive_event(self):#archive the event
         self.status = 'Archived'
+        return True
+    
+    def check_pending(self):#check if event is pending
+        if self.status == 'Pending':
+            return False
+        elif self.status != 'Pending':
+            return True
+        
+    def pending_event(self):#pending the event
+        self.status = 'Pending'
         return True

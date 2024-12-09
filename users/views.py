@@ -89,14 +89,14 @@ def user_view(request):
 def top_up(request):
     Profile = request.user.profile
     if request.method == 'POST':
-        form = UserTopUp(request.POST)
-        if form.is_valid():
+        form = UserTopUp(request.POST) #takes the user to the form
+        if form.is_valid(): #if its valid then it addes the amount
             amount = form.cleaned_data['amount']
             Profile.balance += amount
             Profile.save()
-            Transcation.objects.create(user=request.user, amount=amount)
+            Transcation.objects.create(user=request.user, amount=amount)#updates the transaction able history 
             messages.success(request, f"${amount} has been successfully added to your balance")
             return redirect('users:user')
     else:
-        form = UserTopUp()
+        form = UserTopUp() #if the from isn't valid it reloads the from
     return render(request, 'users/topup.html', {'form': form, 'balance': Profile.balance})

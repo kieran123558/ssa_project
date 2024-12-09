@@ -29,13 +29,13 @@ class UserRegistrationForm(UserCreationForm):
             profile.save()
         return user
     
-class UserTopUp(forms.Form):
+class UserTopUp(forms.Form):#from to top up balance 
     amount = forms.DecimalField(
         max_digits=10, 
         decimal_places=2,
         min_value=0.01,
         label="Enter Amount",
-        widget=forms.NumberInput(attrs={'placeholder': '0.01', 'class': 'form-control'})
+        widget=forms.NumberInput(attrs={'placeholder': '0.01', 'class': 'form-control'})#condition the from must meet, e.g min value <0.01 as it is a currency
     )
 
 
