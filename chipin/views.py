@@ -22,7 +22,7 @@ import urllib.parse
 def transfer_funds(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
-    insufficient_funds = False
+    insufficientfunds = False
 
     if request.user != group.admin:
         messages.error(request, "you no admin")
@@ -32,18 +32,16 @@ def transfer_funds(request, group_id, event_id):
     if archive == False:
         messages.error(request, "This event has already been archived")
         return redirect('chipin:group_detail', group_id=group.id)
-    if archive == True:
-        messages.success(request, "This event is now being archived")
-        event.archive_event()
+
 
     
     for member in event.members.all():
         profile = member.profile
         event_share = event.calculate_share()
         if profile.balance < event_share:
-            insufficient_funds = True
+            insufficientfunds = True
     
-    if insufficient_funds == True:
+    if insufficientfunds == True:
         messages.error(request, f"not all members have sufficinet funds")
         return redirect('chipin:group_detail', group_id=group.id)
     
@@ -68,6 +66,9 @@ def transfer_funds(request, group_id, event_id):
             Transcation.objects.create(user=request.user, amount=total_spend)
         else:
             messages.error(request, "you are not the admin")
+        if archive == True:
+            messages.success(request, "This event is now being archived")
+            event.archive_event()
 
 
         event.save()
@@ -155,22 +156,25 @@ def join_event(request, group_id, event_id):
     if archive == False:
         messages.error(request, "This event has already been archived")
         return redirect('chipin:group_detail', group_id=group.id)
-    # Check if the user is eligible to join based on their max spend
-    if request.user.profile.max_spend < event_share:
-        messages.error(request, f"Your max spend of ${request.user.profile.max_spend} is too low to join this event.")
-        return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user has already joined the event
     if request.user in event.members.all():
         messages.info(request, "You have already joined this event.")
         return redirect('chipin:group_detail', group_id=group.id)
     # Add the user to the event
-    event.members.add(request.user)   
-    messages.success(request, f"You have successfully joined the event '{event.name}'.")  
-    # Optionally, update the event status if needed
-    event.check_status()
-    event.save()
-    return redirect('chipin:group_detail', group_id=group.id)
-
+    # Check if the user is eligible to join based on their max spend
+    if request.user.profile.max_spend < event_share:
+        messages.error(request, f"Your max spend of ${request.user.profile.max_spend} is too low to join this event.")
+        return redirect('chipin:group_detail', group_id=group.id)
+    if request.user.profile.balance < event_share:
+        messages.error(request, f"Your account balance is too low to join this event")
+        return redirect('chipin:group_detail', group_id=group.id)
+    else:
+        messages.success(request, f"You have successfully joined the event '{event.name}'.")  
+        event.members.add(request.user)   
+        # Optionally, update the event status if needed
+        event.check_status()
+        event.save()
+        return redirect('chipin:group_detail', group_id=group.id)
 
 @login_required
 def update_event_status(request, group_id, event_id):
@@ -184,17 +188,36 @@ def update_event_status(request, group_id, event_id):
     event_share = event.calculate_share()
     # Check if all members can afford the event share
     sufficient_funds = True
-    for member in group.members.all():
+    insufficientfunds1 = False
+    for member in event.members.all():
         if member.profile.max_spend < event_share:
             sufficient_funds = False
             break
     # Update the event status based on the members' ability to cover the share
-    if sufficient_funds:
-        event.status = "Active"
-        messages.success(request, f"The event '{event.name}' is now Active. All members can cover the cost.")
-    else:
-        event.status = "Pending"
-        messages.warning(request, f"The event '{event.name}' remains Pending. Some members cannot cover the cost.")
+    for member in event.members.all():
+        profile = member.profile
+        event_share = event.calculate_share()
+        if profile.balance < event_share:
+            insufficientfunds1 = True
+
+
+    archive = event.check_archived()
+    if archive == False:
+        messages.error(request, "This event has already been archived")
+        return redirect('chipin:group_detail', group_id=group.id)
+    if archive == True:
+        if sufficient_funds == False:
+            event.pending_event()
+            messages.warning(request, f"The event '{event.name}' remains Pending. The share price is over some users max spend.")
+        else:     
+            if insufficientfunds1 == True:
+                messages.error(request, f"not all members have sufficinet funds, event is pending")
+                event.status = "Pending"
+                return redirect('chipin:group_detail', group_id=group.id)
+            if insufficientfunds1 == False:
+                event.status = "Active"
+                messages.success(request, f"The event '{event.name}' is now Active. All members can cover the cost.")
+        
     # Save the updated event status
     event.save()
     return redirect('chipin:group_detail', group_id=group.id)

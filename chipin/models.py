@@ -64,3 +64,13 @@ class Event(models.Model):
     def archive_event(self):
         self.status = 'Archived'
         return True
+    
+    def check_pending(self):
+        if self.status == 'Pending':
+            return False
+        elif self.status != 'Pending':
+            return True
+        
+    def pending_event(self):
+        self.status = 'Pending'
+        return True
