@@ -1,12 +1,12 @@
-{% extends 'chipin/base.html' %}
+{% extends 'chipin/base.html' %}<!-- takes the base chipin for top website formmating + home button, user, etc -->
 {% load static %}
 {% block content %}
     <h1>Top up balance</h1>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p}}
+        {{ form.as_p}}<!-- takes the to the from  -->
         <button type="submit" class="btn btn-primary">Confrim</button>
     </form>
-    <a href="{% url 'users:user' %}" >Back to Homepage</a>
+    <a href="{% url 'users:user' %}" >Back to Homepage</a><!-- take form back to home page -->
 {% endblock %}
 

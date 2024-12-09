@@ -44,7 +44,7 @@ class Profile(models.Model):
     def __str__(self):
         return f"self.user.username - ${self.balance}" 
     
-
+#verity the transcation data is correct before adding to histry table
 class Transcation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
