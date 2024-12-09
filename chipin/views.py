@@ -39,11 +39,9 @@ def transfer_funds(request, group_id, event_id):
             insufficient_funds = True
     
     if insufficient_funds == True:
+        event.status = "Archived"
         messages.error(request, f"not all members have sufficinet funds")
         return redirect('chipin:group_detail', group_id=group.id)
-          event.status = "Archived"
-          messages.error(request, f"not all members have sufficinet funds")
-          return redirect('chipin:group_detail', group_id=group.id)
     
     # Transfer funds from members to admin
     with transaction.atomic():
