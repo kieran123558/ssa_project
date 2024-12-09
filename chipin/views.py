@@ -22,7 +22,6 @@ import urllib.parse
 def transfer_funds(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
-    insufficient_funds = False
 
     if request.user != group.admin:
         messages.error(request, "you no admin")
@@ -41,9 +40,7 @@ def transfer_funds(request, group_id, event_id):
         profile = member.profile
         event_share = event.calculate_share()
         if profile.balance < event_share:
-            insufficient_funds = True
-    
-    if insufficient_funds == True:
+        event.status = "Archived"
         messages.error(request, f"not all members have sufficinet funds")
         return redirect('chipin:group_detail', group_id=group.id)
     
@@ -129,6 +126,9 @@ def group_detail(request, group_id, edit_comment_id=None):
 @login_required
 def create_event(request, group_id):
     group = get_object_or_404(Group, id=group_id)
+    if event.status == "Archived":
+        messages.error(request, "This even has already been archived.")
+        return redirect('chipin:group_detail', group_id=group.id)
     if request.user != group.admin:
         messages.error(request, "Only the group administrator can create events.")
         return redirect('chipin:group_detail', group_id=group.id)
@@ -151,9 +151,8 @@ def join_event(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
     event_share = event.calculate_share()  
-    archive = event.check_archived()
-    if archive == False:
-        messages.error(request, "This event has already been archived")
+    if event.status == "Archived":
+        messages.error(request, "This even has already been archived.")
         return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user is eligible to join based on their max spend
     if request.user.profile.max_spend < event_share:
@@ -204,8 +203,8 @@ def leave_event(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
     archive = event.check_archived()
-    if archive == False:
-        messages.error(request, "This event has already been archived")
+    if event.status == "Archived":
+        messages.error(request, "This even has already been archived.")
         return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user is part of the event
     if request.user not in event.members.all():
@@ -223,6 +222,9 @@ def leave_event(request, group_id, event_id):
 def delete_event(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
+    if event.status == "Archived":
+        messages.error(request, "This even has already been archived.")
+        return redirect('chipin:group_detail', group_id=group.id)
     # Ensure only the group admin can delete the event
     if request.user != group.admin:
         messages.error(request, "Only the group administrator can delete events.")
@@ -308,24 +310,6 @@ def delete_group(request, group_id):
     else:
         messages.error(request, "You do not have permission to delete this group.")
     return redirect('chipin:home')
-
-@login_required
-def accept_invite(request, group_id):
-    group = get_object_or_404(Group, id=group_id)
-    user_id = request.GET.get('user_id')
-    if user_id:
-        invited_user = get_object_or_404(User, id=user_id)
-        if invited_user in group.members.all():
-            messages.info(request, f'{invited_user.username} is already a member of the group "{group.name}".')
-        elif invited_user in group.invited_users.all():
-            group.members.add(invited_user)
-            group.invited_users.remove(invited_user)  # Remove from invited list
-            messages.success(request, f'{invited_user.username} has successfully joined the group "{group.name}".')
-        else:
-            messages.error(request, "You are not invited to join this group.")
-    else:
-        messages.error(request, "Invalid invitation link.")  
-    return redirect('chipin:group_detail', group_id=group.id)
 
 @login_required
 def invite_users(request, group_id):
