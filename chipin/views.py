@@ -20,33 +20,31 @@ from chipin.models import Event
 import urllib.parse
 
 def transfer_funds(request, group_id, event_id):
-    group = get_object_or_404(Group, id=group_id)
+    group = get_object_or_404(Group, id=group_id)#get group and event data
     event = get_object_or_404(Event, id=event_id, group=group)
     insufficientfunds = False
 
-    if request.user != group.admin:
-        messages.error(request, "you no admin")
+    if request.user != group.admin:#check if user is admin
+        messages.error(request, "You are not the admin of this group")
         return redirect('group_detail', group_id=group_id)
     
-    archive = event.check_archived()
-    if archive == False:
+    archive = event.check_archived() #check if the event is archived
+    if archive == False: #if archived it will not transfer funds
         messages.error(request, "This event has already been archived")
         return redirect('chipin:group_detail', group_id=group.id)
 
-
-    
+    # Check if all members have sufficient funds
     for member in event.members.all():
         profile = member.profile
         event_share = event.calculate_share()
         if profile.balance < event_share:
             insufficientfunds = True
     
-    if insufficientfunds == True:
-        messages.error(request, f"not all members have sufficinet funds")
+    if insufficientfunds == True:#if not all members have sufficient funds
+        messages.error(request, "not all members have sufficient funds")
         return redirect('chipin:group_detail', group_id=group.id)
     
-
-
+    # Transfer funds from members to admin
     with transaction.atomic():
         for member in event.members.all():
             profile = member.profile
@@ -55,30 +53,28 @@ def transfer_funds(request, group_id, event_id):
             profile.save()
             Transcation.objects.create(user=member, amount=-event_share)
             
-
-        if request.user == group.admin:
+        if request.user == group.admin:#checks user is admin then transfer funds
             profile = request.user.profile
             total_spend = Event.objects.get(id=event_id).total_spend
             addition = [profile.balance, Decimal(total_spend)]
             Sum = sum(addition)
-            profile.balance = Sum
+            profile.balance = Sum#adds fund to admin
             profile.save()
-            Transcation.objects.create(user=request.user, amount=total_spend)
+            Transcation.objects.create(user=request.user, amount=total_spend)#adds it to transcation histroy 
         else:
-            messages.error(request, "you are not the admin")
+            messages.error(request, "You are not the admin")
+        # Archive the event if it is not already archived
         if archive == True:
             messages.success(request, "This event is now being archived")
             event.archive_event()
 
-
         event.save()
-        messages.success(request, "Funds transferred")
+        messages.success(request, "Funds transferred")#infroms the user that the funds was successfully transferred
         return redirect('chipin:group_detail', group_id=group.id)
 
-
-
-    messages.error(request, "there was an error")
+    messages.error(request, "There was an error")
     return redirect('chipin:group_detail', group_id=group.id)
+
 
 @login_required
 def group_detail(request, group_id, edit_comment_id=None):
