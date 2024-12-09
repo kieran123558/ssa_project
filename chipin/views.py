@@ -22,7 +22,7 @@ import urllib.parse
 def transfer_funds(request, group_id, event_id):
     group = get_object_or_404(Group, id=group_id)
     event = get_object_or_404(Event, id=event_id, group=group)
-    insufficientfunds = False
+    insufficient_funds = False
 
     if request.user != group.admin:
         messages.error(request, "you no admin")
@@ -39,9 +39,9 @@ def transfer_funds(request, group_id, event_id):
         profile = member.profile
         event_share = event.calculate_share()
         if profile.balance < event_share:
-            insufficientfunds = True
+            insufficient_funds = True
     
-    if insufficientfunds == True:
+    if insufficient_funds == True:
         messages.error(request, f"not all members have sufficinet funds")
         return redirect('chipin:group_detail', group_id=group.id)
     
@@ -155,6 +155,10 @@ def join_event(request, group_id, event_id):
     archive = event.check_archived()
     if archive == False:
         messages.error(request, "This event has already been archived")
+        return redirect('chipin:group_detail', group_id=group.id)
+    # Check if the user is eligible to join based on their max spend
+    if request.user.profile.max_spend < event_share:
+        messages.error(request, f"Your max spend of ${request.user.profile.max_spend} is too low to join this event.")
         return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user has already joined the event
     if request.user in event.members.all():
